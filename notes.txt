@@ -1,0 +1,22 @@
+PyCharm查看代码主要使用 Ctrl+B 或 Ctrl+鼠标左键 跳转定义，Ctrl+Q 查看文档，Alt+F7 查找引用。
+常用快捷键包括：跳转定义(Ctrl+B)、查看参数(Ctrl+P)、
+查看快速定义窗口(Ctrl+Shift+I)、显示结构(Ctrl+F12)、
+文件快速导航(Ctrl+E)。
+
+Ctrl+Shift+E：最近修改
+Ctrl+Shift++F:全局搜索
+
+
+最常用快捷键总结 (Windows/Linux, Mac对应为Cmd/Opt):
+查看定义/源码： Ctrl + B 或 Ctrl + 鼠标左键 (进入函数/类定义)
+快速查看文档： Ctrl + Q (在悬浮窗显示函数、文档字符串)
+快速查看定义/源码预览： Ctrl + Shift + I (打开查看定义悬浮窗，可再按 Ctrl+Enter 展开)
+查看参数信息： Ctrl + P (查看函数需要的参数)
+查看引用/使用位置： Alt + F7 (查找变量、函数、类在项目中的所有使用处)
+查看最近打开的文件： Ctrl + E
+查看文件结构： Ctrl + F12 (快速查找当前文件的方法、变量)
+格式化代码： Ctrl + Alt + L
+
+返回上次浏览位置： Ctrl + Alt + Left/Right
+查看继承关系： Ctrl + H (查看类的继承结构)
+查找任何内容： Shift 双击 (Search Everywhere)
