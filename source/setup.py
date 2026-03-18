@@ -1,5 +1,8 @@
 import pygame
 from . import  constants as C
+from . import tools
 
 pygame.init()
-pygame.display.set_mode((C.SCREEN_WIDTH, C.SCREEN_HEIGHT))
+SCREEN = pygame.display.set_mode((C.SCREEN_WIDTH, C.SCREEN_HEIGHT))#确定画布大小
+
+GRAPHICS = tools.load_graphics('resources/graphics')
