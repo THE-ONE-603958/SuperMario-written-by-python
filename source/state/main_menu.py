@@ -22,13 +22,32 @@ class MainMenu:
         self.player_image = tools.get_image(setup.GRAPHICS['mario_bros'],178,32,12,16,(0,0,0),C.PLAYER_MULTI)
 
     def setup_cursor(self):
-        self.cursor = tools.get_image(setup.GRAPHICS['item_objects'],24,160,8,8,(0,0,0),C.PLAYER_MULTI)
+        self.cursor = pygame.sprite.Sprite()
+        self.cursor.image = tools.get_image(setup.GRAPHICS['item_objects'],24,160,8,8,(0,0,0),C.PLAYER_MULTI)
+        self.cursor.rect = self.cursor.image.get_rect()
+        self.cursor.rect.x, self.cursor.rect.y = (220,360)
 
-    def update(self,surface):
+        self.cursor.state = '1P'
+
+    def update_cursor_state(self,keys):
+        if keys[pygame.K_UP]:
+            self.cursor.state = '1P'
+            self.cursor.rect.y = 360
+        elif keys[pygame.K_DOWN]:
+            self.cursor.state = '2P'
+            self.cursor.rect.y = 405
+        elif keys[pygame.K_RETURN]:
+            if self.cursor.state == '1P':
+                pass
+            elif self.cursor.state == '2P':
+                pass
+
+    def update(self,surface,keys):
+        self.update_cursor_state(keys)
         surface.blit(self.background,self.viewport)
         surface.blit(self.caption,(170,100))
         surface.blit(self.player_image,(110,490))
-        surface.blit(self.cursor,(220,360))
+        surface.blit(self.cursor.image,self.cursor.rect)
 
         self.info.update()
         self.info.draw(surface)
