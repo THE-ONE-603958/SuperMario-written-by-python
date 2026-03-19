@@ -4,12 +4,22 @@ import pygame
 import random
 
 class Game:
-    def __init__(self):
-        self.screen = pygame.display.get_surface()
+    def __init__(self,state_dict,start_state):
+        self.screen = pygame.display.get_surface()#获取当前已存在的显示表面
         self.clock = pygame.time.Clock()
         self.keys = pygame.key.get_pressed()
+        self.state_dict = state_dict
+        self.state =self.state_dict[start_state]
 
-    def run(self, state):
+    def update(self):
+        if self.state.finished:
+            next_state = self.state.next_state
+            self.state.finished = False
+            self.state = self.state_dict[next_state]
+        self.state.update(self.screen,self.keys)
+
+
+    def run(self):
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -19,7 +29,7 @@ class Game:
                     self.keys = pygame.key.get_pressed()
                 elif event.type == pygame.KEYUP:
                     self.keys = pygame.key.get_pressed()
-            state.update(self.screen,self.keys)
+            self.update()
             pygame.display.update()
             self.clock.tick(60)
 

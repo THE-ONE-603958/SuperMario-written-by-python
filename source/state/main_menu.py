@@ -10,6 +10,9 @@ class MainMenu:
         self.setup_cursor()
         self.info = info.Info('main_menu')
 
+        self.finished = False
+        self.next_state = 'load_screen'
+
     def setup_background(self):
         self.background = setup.GRAPHICS['level_1']
         self.background_rect = self.background.get_rect()
@@ -38,9 +41,9 @@ class MainMenu:
             self.cursor.rect.y = 405
         elif keys[pygame.K_RETURN]:
             if self.cursor.state == '1P':
-                pass
+                self.finished = True
             elif self.cursor.state == '2P':
-                pass
+                self.finished = True
 
     def update(self,surface,keys):
         self.update_cursor_state(keys)
