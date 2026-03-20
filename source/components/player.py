@@ -94,9 +94,6 @@ class Player(pygame.sprite.Sprite):
             self.image = self.frames[self.frame_index]
             self.rect = self.image.get_rect()
 
-    def update(self,keys):
-        self.handle_states(keys)
-
     def handle_states(self,keys):
 
         if self.state == 'stand':
@@ -111,6 +108,17 @@ class Player(pygame.sprite.Sprite):
         else:
             self.image = self.left_frames[self.frame_index]
 
+        self.current_time = pygame.time.get_ticks()
+        if self.current_time - self.walking_timer > self.frame_duration():
+            if self.frame_index < 3:
+                self.frame_index += 1
+            else:
+                self.frame_index = 1
+            self.walking_timer = self.current_time
+
+    def frame_duration(self):
+        duration = -60/self.max_run_vel * abs(self.x_vel) + 80
+        return duration
 
     def stand(self,keys):
         self.frame_index  = 0
@@ -124,16 +132,12 @@ class Player(pygame.sprite.Sprite):
             self.state = 'walk'
 
     def walk(self,keys):
-        self.max_x_vel = self.max_walk_vel
-        self.x_accel = self.walk_accel
-        self.current_time = pygame.time.get_ticks()
-
-        if self.current_time - self.walking_timer > 100:
-            if self.frame_index < 3:
-                self.frame_index += 1
-            else:
-                self.frame_index = 1
-            self.walking_timer = self.current_time
+        if keys[pygame.K_a]:
+            self.max_x_vel = self.max_run_vel
+            self.x_accel = self.run_accel
+        else:
+            self.max_x_vel = self.max_walk_vel
+            self.x_accel = self.walk_accel
 
         if keys[pygame.K_RIGHT]:
             self.face_right = True
@@ -167,6 +171,9 @@ class Player(pygame.sprite.Sprite):
             return min(vel+accel, max_vel)
         else:
             return max(vel-accel, -max_vel)
+
+    def update(self,keys):
+        self.handle_states(keys)
 
 
 
