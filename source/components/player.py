@@ -25,6 +25,7 @@ class Player(pygame.sprite.Sprite):
         self.face_right = True
         self.dead = False
         self.big = False
+        self.can_jump = True
 
     def setup_velocities(self):
         speed = self.player_data['speed']
@@ -94,14 +95,97 @@ class Player(pygame.sprite.Sprite):
             self.image = self.frames[self.frame_index]
             self.rect = self.image.get_rect()
 
+    def stand(self,keys):
+        self.frame_index  = 0
+        self.x_vel = 0
+        self.y_vel = 0
+        if keys[pygame.K_RIGHT]:
+            self.face_right = True
+            self.state = 'walk'
+        elif keys[pygame.K_LEFT]:
+            self.face_right = False
+            self.state = 'walk'
+        elif keys[pygame.K_SPACE] and self.can_jump:
+            self.state = 'jump'
+            self.y_vel = self.jump_vel
+
+    def walk(self,keys):
+        if keys[pygame.K_LSHIFT]:
+            self.max_x_vel = self.max_run_vel
+            self.x_accel = self.run_accel
+        else:
+            self.max_x_vel = self.max_walk_vel
+            self.x_accel = self.walk_accel
+
+        if keys[pygame.K_SPACE] and self.can_jump:
+            self.state = 'jump'
+            self.y_vel = self.jump_vel
+
+        if keys[pygame.K_RIGHT]:
+            self.face_right = True
+            if self.x_vel < 0:
+                self.frame_index = 5
+                self.x_accel = self.turn_accel
+            self.x_vel = self.calc_vel(self.x_vel, self.x_accel,self.max_x_vel,True)
+        elif keys[pygame.K_LEFT]:
+            self.face_right = False
+            if self.x_vel > 0:
+                self.frame_index = 5
+                self.x_accel = self.turn_accel
+            self.x_vel = self.calc_vel(self.x_vel, self.x_accel,self.max_x_vel,False)
+        else: #无按键按下时
+            if self.face_right:
+                self.x_vel -= self.x_accel
+                if self.x_vel < 0:
+                    self.x_vel = 0
+                    self.state = 'stand'
+            else:
+                self.x_vel += self.x_accel
+                if self.x_vel > 0:
+                    self.x_vel = 0
+                    self.state = 'stand'
+
+    def jump(self,keys):
+        self.can_jump = False
+
+        self.frame_index = 4
+        self.y_vel += self.anti_gravity
+        if self.y_vel > 0:
+            self.state = 'fall'
+
+        if keys[pygame.K_RIGHT]:
+            self.x_vel = self.calc_vel(self.x_vel, self.x_accel,self.max_x_vel,True)
+        elif keys[pygame.K_LEFT]:
+            self.x_vel = self.calc_vel(self.x_vel, self.x_accel,self.max_x_vel,False)
+
+        if not keys[pygame.K_SPACE]:
+            self.state = 'fall'
+
+    def fall(self,keys):
+        self.y_vel = self.calc_vel(self.y_vel,self.gravity,self.max_y_vel,True)
+
+    #TODO walkaround, will move to level.py for collision detection
+        if self.rect.bottom > C.GROUND_HEIGHT:
+            self.rect.bottom = C.GROUND_HEIGHT
+            self.y_vel = 0
+            self.state = 'walk'
+
+    def can_jump_or_not(self,keys):
+        if not keys[pygame.K_SPACE]:
+            self.can_jump = True
+
     def handle_states(self,keys):
+
+        self.can_jump_or_not(keys)
 
         if self.state == 'stand':
             self.stand(keys)
         elif self.state == 'walk':
             self.walk(keys)
         elif self.state == 'jump':
-            self.run(keys)
+            self.jump(keys)
+        elif self.state == 'fall':
+            self.fall(keys)
 
         if self.face_right:
             self.image = self.right_frames[self.frame_index]
@@ -120,52 +204,6 @@ class Player(pygame.sprite.Sprite):
         duration = -60/self.max_run_vel * abs(self.x_vel) + 80
         return duration
 
-    def stand(self,keys):
-        self.frame_index  = 0
-        self.x_vel = 0
-        self.y_vel = 0
-        if keys[pygame.K_RIGHT]:
-            self.face_right = True
-            self.state = 'walk'
-        elif keys[pygame.K_LEFT]:
-            self.face_right = False
-            self.state = 'walk'
-
-    def walk(self,keys):
-        if keys[pygame.K_a]:
-            self.max_x_vel = self.max_run_vel
-            self.x_accel = self.run_accel
-        else:
-            self.max_x_vel = self.max_walk_vel
-            self.x_accel = self.walk_accel
-
-        if keys[pygame.K_RIGHT]:
-            self.face_right = True
-            if self.x_vel < 0:
-                self.frame_index = 5
-                self.x_accel = self.turn_accel
-            self.x_vel = self.calc_vel(self.x_vel, self.x_accel,self.max_x_vel,True)
-        elif keys[pygame.K_LEFT]:
-            self.face_right = False
-            if self.x_vel > 0:
-                self.frame_index = 5
-                self.x_accel = self.turn_accel
-            self.x_vel = self.calc_vel(self.x_vel, self.x_accel,self.max_x_vel,False)
-        else:
-            if self.face_right:
-                self.x_vel -= self.x_accel
-                if self.x_vel < 0:
-                    self.x_vel = 0
-                    self.state = 'stand'
-            else:
-                self.x_vel += self.x_accel
-                if self.x_vel > 0:
-                    self.x_vel = 0
-                    self.state = 'stand'
-
-    def run(self,keys):
-        pass
-
     def calc_vel(self,vel,accel,max_vel,is_positive=True):
         if is_positive:
             return min(vel+accel, max_vel)
@@ -176,5 +214,21 @@ class Player(pygame.sprite.Sprite):
         self.handle_states(keys)
 
 
-
+"""
+1. 初始状态: can_jump = True
+        ↓
+2. 玩家按下空格键 (在 stand 或 walk 状态)
+        ↓
+3. 进入 jump() 方法: can_jump = False
+        ↓
+4. 玩家在空中，持续按或不按空格键
+        ↓
+5. 玩家落地后 (在 fall 或 walk 状态)
+        ↓
+6. can_jump_or_not() 被调用
+   - 如果 keys[K_SPACE] == False → can_jump = True
+   - 如果 keys[K_SPACE] == True → can_jump = False (保持)
+        ↓
+7. 回到步骤 2，可以再次跳跃
+"""
 
