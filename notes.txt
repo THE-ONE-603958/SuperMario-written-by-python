@@ -8,6 +8,8 @@ PyCharm查看代码主要使用 Ctrl+B 或 Ctrl+鼠标左键 跳转定义，Ctrl
 Ctrl+Shift+E：最近修改
 Ctrl+Shift++F:全局搜索
 
+alt+~ 可以使用git查看当前文档的历史存档
+
 最常用快捷键总结 (Windows/Linux, Mac对应为Cmd/Opt):
 查看定义/源码： Ctrl + B 或 Ctrl + 鼠标左键 (进入函数/类定义)
 快速查看文档： Ctrl + Q (在悬浮窗显示函数、文档字符串)

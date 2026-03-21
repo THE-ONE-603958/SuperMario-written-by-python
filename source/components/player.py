@@ -105,7 +105,8 @@ class Player(pygame.sprite.Sprite):
         elif keys[pygame.K_LEFT]:
             self.face_right = False
             self.state = 'walk'
-        elif keys[pygame.K_SPACE] and self.can_jump:
+
+        if keys[pygame.K_SPACE] and self.can_jump:
             self.state = 'jump'
             self.y_vel = self.jump_vel
 
@@ -164,11 +165,6 @@ class Player(pygame.sprite.Sprite):
     def fall(self,keys):
         self.y_vel = self.calc_vel(self.y_vel,self.gravity,self.max_y_vel,True)
 
-    #TODO walkaround, will move to level.py for collision detection
-        if self.rect.bottom > C.GROUND_HEIGHT:
-            self.rect.bottom = C.GROUND_HEIGHT
-            self.y_vel = 0
-            self.state = 'walk'
 
     def can_jump_or_not(self,keys):
         if not keys[pygame.K_SPACE]:
