@@ -13,6 +13,8 @@ class Player(pygame.sprite.Sprite):
         self.setup_velocities()
         self.setup_timers()
         self.load_images()
+        self.turn_frame_start_time = 0  # 转身帧开始时间
+        self.turn_frame_duration = 100  # 转身帧显示时长（毫秒）
 
     def load_data(self):
         file_name = self.name + '.json'
@@ -124,12 +126,14 @@ class Player(pygame.sprite.Sprite):
             self.face_right = True
             if self.x_vel < 0:
                 self.frame_index = 5
+                self.turn_frame_start_time = pygame.time.get_ticks()
                 self.x_accel = self.turn_accel
             self.x_vel = self.calc_vel(self.x_vel, self.x_accel,self.max_x_vel,True)
         elif keys[pygame.K_LEFT]:
             self.face_right = False
             if self.x_vel > 0:
                 self.frame_index = 5
+                self.turn_frame_start_time = pygame.time.get_ticks()
                 self.x_accel = self.turn_accel
             self.x_vel = self.calc_vel(self.x_vel, self.x_accel,self.max_x_vel,False)
         else: #无按键按下时
@@ -177,8 +181,6 @@ class Player(pygame.sprite.Sprite):
     def die(self,keys):
         self.y_vel += self.anti_gravity
         self.rect.y += self.y_vel
-        if self.frame_index != 6:
-            self.frame_index = 6
 
     def go_die(self):
         self.dead = True
@@ -193,9 +195,10 @@ class Player(pygame.sprite.Sprite):
         else:
             return max(vel-accel, -max_vel)
 
-    def handle_states(self,keys):
+    def handle_states(self, keys):
         self.can_jump_or_not(keys)
 
+        # 状态处理
         if self.state == 'stand':
             self.stand(keys)
         elif self.state == 'walk':
@@ -207,23 +210,48 @@ class Player(pygame.sprite.Sprite):
         elif self.state == 'die':
             self.die(keys)
 
+        # 图像设置
         if self.face_right:
             self.image = self.right_frames[self.frame_index]
         else:
             self.image = self.left_frames[self.frame_index]
 
+        # 统一动画更新（改进版）
+        self.update_animation()
+
+    def update_animation(self):
+        """统一的动画更新，带转身帧超时机制"""
         self.current_time = pygame.time.get_ticks()
-        if self.state not in ['die', 'jump', 'stand']:  # 只在walk和fall状态更新动画
+
+        if self.state == 'stand':
+            self.frame_index = 0
+        elif self.state == 'walk':
+        # 转身帧处理
+            if self.frame_index == 5:
+                # 额外检查：如果速度已改变方向，提前退出转身帧
+                if (self.face_right and self.x_vel > 0) or (not self.face_right and self.x_vel < 0):
+                    self.frame_index = 1
+                    self.walking_timer = self.current_time
+                elif self.current_time - self.turn_frame_start_time > self.turn_frame_duration:
+                    self.frame_index = 1
+                    self.walking_timer = self.current_time
+                else:
+                    return
+            # 正常行走动画更新
             if self.current_time - self.walking_timer > self.frame_duration():
                 if self.frame_index < 3:
                     self.frame_index += 1
                 else:
                     self.frame_index = 1
                 self.walking_timer = self.current_time
-        elif self.state == 'stand':
-            self.frame_index = 0  # 确保站立时帧索引为0
+
         elif self.state == 'jump':
             self.frame_index = 4
+
+        elif self.state == 'fall':
+            # 下落状态保持当前帧
+            pass
+
         elif self.state == 'die':
             self.frame_index = 6
 

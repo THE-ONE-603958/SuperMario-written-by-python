@@ -9,6 +9,8 @@ Ctrl+Shift+E：最近修改
 Ctrl+Shift++F:全局搜索
 
 alt+~ 可以使用git查看当前文档的历史存档
+Ctrl+F3 ：跳转到下一个选中的相同符号（变量名、函数名、类名等）
+
 
 最常用快捷键总结 (Windows/Linux, Mac对应为Cmd/Opt):
 查看定义/源码： Ctrl + B 或 Ctrl + 鼠标左键 (进入函数/类定义)

@@ -6,10 +6,11 @@ import json
 import os
 
 class Level:
-    def __init__(self):
+    def start(self,game_info):
+        self.game_info = game_info
         self.finished = False
         self.next_state = 'game_over'
-        self.info = info.Info('level')
+        self.info = info.Info('level',self.game_info)
         self.load_map_data()
         self.setup_background()
         self.setup_map_data()
@@ -94,15 +95,23 @@ class Level:
             sprite.state = 'fall'
         sprite.rect.y -= 1
 
+    def check_if_go_die(self):
+        if self.player.rect.y > C.SCREEN_H:
+            self.player.go_die()
+
     def update_game_window(self):
         third = self.game_window.x + self.game_window.width / 3
         if self.player.x_vel > 0 and self.player.rect.centerx > third and self.game_window.right < self.map_end_x:
             self.game_window.x += self.player.x_vel
             self.map_start_x = self.game_window.x
 
-    def check_if_go_die(self):
-        if self.player.rect.y > C.SCREEN_H:
-            self.player.go_die()
+    def update_game_info(self):
+        if self.player.dead:
+            self.game_info['lives'] -= 1
+        if self.game_info['lives'] == 0:
+            self.next_state = 'game_over'
+        else:
+            self.next_state = 'load_screen'
 
     def update(self,surface,keys):
         self.current_time = pygame.time.get_ticks()
@@ -111,10 +120,12 @@ class Level:
         if self.player.dead:
             if self.current_time - self.player.death_timer > 3000:
                 self.finished = True
+                self.update_game_info()
         else:
+            self.info.update()
             self.update_player_position()
-            self.check_if_go_die()
             self.update_game_window()
+            self.check_if_go_die()
         self.draw(surface)
 
     def draw(self,surface):
@@ -122,7 +133,7 @@ class Level:
         self.game_ground.blit(self.player.image,self.player.rect)
         surface.blit(self.game_ground,(0,0),self.game_window)
         self.info.draw(surface)
-        self.info.update()
+
 
 """
 def adjust_player_x(self, sprite):

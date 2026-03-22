@@ -5,11 +5,20 @@ from source.components import info
 
 class MainMenu:
     def __init__(self):
+        game_info ={
+            'score':0,
+            'coin':0,
+            'lives':3,
+            'player_state':'small'
+        }
+        self.start(game_info)
+
+    def start(self,game_info):
+        self.game_info = game_info
         self.setup_background()
         self.setup_player()
         self.setup_cursor()
-        self.info = info.Info('main_menu')
-
+        self.info = info.Info('main_menu',self.game_info)
         self.finished = False
         self.next_state = 'load_screen'
 
@@ -40,10 +49,19 @@ class MainMenu:
             self.cursor.state = '2P'
             self.cursor.rect.y = 405
         elif keys[pygame.K_RETURN]:
+            self.reset_game_info()
             if self.cursor.state == '1P':
                 self.finished = True
             elif self.cursor.state == '2P':
                 self.finished = True
+
+    def reset_game_info(self):
+        self.game_info.update({
+            'score':0,
+            'coin':0,
+            'lives':3,
+            'player_state':'small'
+        })
 
     def update(self,surface,keys):
         self.update_cursor_state(keys)

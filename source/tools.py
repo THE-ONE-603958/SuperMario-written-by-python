@@ -13,9 +13,11 @@ class Game:
 
     def update(self):
         if self.state.finished:
+            game_info = self.state.game_info
             next_state = self.state.next_state
             self.state.finished = False
             self.state = self.state_dict[next_state]
+            self.state.start(game_info)
         self.state.update(self.screen,self.keys)
 
 
