@@ -48,6 +48,7 @@ class Player(pygame.sprite.Sprite):
     def setup_timers(self):
         self.walking_timer = 0
         self.transition_timer = 0
+        self.death_timer = 0
 
     def load_images(self):
         sheet = setup.GRAPHICS['mario_bros']
@@ -96,7 +97,7 @@ class Player(pygame.sprite.Sprite):
             self.rect = self.image.get_rect()
 
     def stand(self,keys):
-        self.frame_index  = 0
+        self.frame_index = 0
         self.x_vel = 0
         self.y_vel = 0
         if keys[pygame.K_RIGHT]:
@@ -111,16 +112,13 @@ class Player(pygame.sprite.Sprite):
             self.y_vel = self.jump_vel
 
     def walk(self,keys):
+
         if keys[pygame.K_LSHIFT]:
             self.max_x_vel = self.max_run_vel
             self.x_accel = self.run_accel
         else:
             self.max_x_vel = self.max_walk_vel
             self.x_accel = self.walk_accel
-
-        if keys[pygame.K_SPACE] and self.can_jump:
-            self.state = 'jump'
-            self.y_vel = self.jump_vel
 
         if keys[pygame.K_RIGHT]:
             self.face_right = True
@@ -145,11 +143,18 @@ class Player(pygame.sprite.Sprite):
                 if self.x_vel > 0:
                     self.x_vel = 0
                     self.state = 'stand'
+            return
+
+        if keys[pygame.K_SPACE] and self.can_jump:
+            self.state = 'jump'
+            self.y_vel = self.jump_vel
+            return
+
 
     def jump(self,keys):
         self.can_jump = False
-
         self.frame_index = 4
+
         self.y_vel += self.anti_gravity
         if self.y_vel > 0:
             self.state = 'fall'
@@ -162,16 +167,33 @@ class Player(pygame.sprite.Sprite):
         if not keys[pygame.K_SPACE]:
             self.state = 'fall'
 
-    def fall(self,keys):
-        self.y_vel = self.calc_vel(self.y_vel,self.gravity,self.max_y_vel,True)
-
-
     def can_jump_or_not(self,keys):
         if not keys[pygame.K_SPACE]:
             self.can_jump = True
 
-    def handle_states(self,keys):
+    def fall(self,keys):
+        self.y_vel = self.calc_vel(self.y_vel,self.gravity,self.max_y_vel,True)
 
+    def die(self,keys):
+        self.y_vel += self.anti_gravity
+        self.rect.y += self.y_vel
+        if self.frame_index != 6:
+            self.frame_index = 6
+
+    def go_die(self):
+        self.dead = True
+        self.y_vel = self.jump_vel
+        self.frame_index = 6
+        self.state = 'die'
+        self.death_timer = self.current_time
+
+    def calc_vel(self,vel,accel,max_vel,is_positive=True):
+        if is_positive:
+            return min(vel+accel, max_vel)
+        else:
+            return max(vel-accel, -max_vel)
+
+    def handle_states(self,keys):
         self.can_jump_or_not(keys)
 
         if self.state == 'stand':
@@ -182,6 +204,8 @@ class Player(pygame.sprite.Sprite):
             self.jump(keys)
         elif self.state == 'fall':
             self.fall(keys)
+        elif self.state == 'die':
+            self.die(keys)
 
         if self.face_right:
             self.image = self.right_frames[self.frame_index]
@@ -189,22 +213,23 @@ class Player(pygame.sprite.Sprite):
             self.image = self.left_frames[self.frame_index]
 
         self.current_time = pygame.time.get_ticks()
-        if self.current_time - self.walking_timer > self.frame_duration():
-            if self.frame_index < 3:
-                self.frame_index += 1
-            else:
-                self.frame_index = 1
-            self.walking_timer = self.current_time
+        if self.state not in ['die', 'jump', 'stand']:  # 只在walk和fall状态更新动画
+            if self.current_time - self.walking_timer > self.frame_duration():
+                if self.frame_index < 3:
+                    self.frame_index += 1
+                else:
+                    self.frame_index = 1
+                self.walking_timer = self.current_time
+        elif self.state == 'stand':
+            self.frame_index = 0  # 确保站立时帧索引为0
+        elif self.state == 'jump':
+            self.frame_index = 4
+        elif self.state == 'die':
+            self.frame_index = 6
 
     def frame_duration(self):
         duration = -60/self.max_run_vel * abs(self.x_vel) + 80
         return duration
-
-    def calc_vel(self,vel,accel,max_vel,is_positive=True):
-        if is_positive:
-            return min(vel+accel, max_vel)
-        else:
-            return max(vel-accel, -max_vel)
 
     def update(self,keys):
         self.handle_states(keys)

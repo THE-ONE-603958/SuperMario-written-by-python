@@ -8,14 +8,14 @@ import os
 class Level:
     def __init__(self):
         self.finished = False
-        self.next_state = None
+        self.next_state = 'game_over'
         self.info = info.Info('level')
         self.load_map_data()
         self.setup_background()
-        self.player = player.Player('mario')
         self.setup_map_data()
-        self.setup_player_start_position()
         self.setup_game_items()
+        self.player = player.Player('mario')
+        self.setup_player_start_position()
 
     def load_map_data(self):
         file_name = 'level_1.json'
@@ -100,12 +100,22 @@ class Level:
             self.game_window.x += self.player.x_vel
             self.map_start_x = self.game_window.x
 
-    def update(self,surface,keys):
-        self.player.update(keys)
-        self.update_player_position()
-        self.update_game_window()
-        self.draw(surface)
+    def check_if_go_die(self):
+        if self.player.rect.y > C.SCREEN_H:
+            self.player.go_die()
 
+    def update(self,surface,keys):
+        self.current_time = pygame.time.get_ticks()
+        self.player.update(keys)
+
+        if self.player.dead:
+            if self.current_time - self.player.death_timer > 3000:
+                self.finished = True
+        else:
+            self.update_player_position()
+            self.check_if_go_die()
+            self.update_game_window()
+        self.draw(surface)
 
     def draw(self,surface):
         self.game_ground.blit(self.background, self.game_window,self.game_window)
@@ -134,10 +144,12 @@ pass
 → 玩家应该落在平台上
 
 情况2：玩家在下方（从下往上顶）
+   
    ┌────┐
    │    │ 平台
    └────┘ ← sprite.rect.bottom
    
+    玩家     
    ┌────┐
    │    │
    └────┘ ← player.rect.bottom
