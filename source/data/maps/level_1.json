@@ -1,7 +1,7 @@
 {
     "image_name":"level_1",
     "maps":[
-        {"start_x":   0, "end_x": 9085, "player_x": 110, "player_y":538},
+        {"start_x":   0, "end_x": 9086, "player_x": 110, "player_y":538},
         {"start_x":9090, "end_x": 9890, "player_x":  80, "player_y": 60},
         {"start_x":6740, "end_x": 9086, "player_x": 270, "player_y":450}
     ],
@@ -154,7 +154,7 @@
             {"x":4330, "y":538, "direction":0, "type":0, "color":0}
         ]},
         {"5":[
-            {"x":4700, "y":538, "direction":0, "type":1, "color":1}
+            {"x":4700, "y":538, "direction":0, "type":1, "color":0}
         ]},
         {"6":[
             {"x":4900, "y":538, "direction":0, "type":0, "color":0},

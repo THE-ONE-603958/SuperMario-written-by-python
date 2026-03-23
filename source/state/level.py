@@ -1,6 +1,6 @@
 import pygame
 from source import setup
-from source.components import info,player,stuff,brick,box
+from source.components import info,player,stuff,brick,box,enemy
 from source import constants as C
 import json
 import os
@@ -19,6 +19,7 @@ class Level:
         self.setup_player_start_position()
         self.setup_bricks()
         self.setup_boxs()
+        self.setup_enemies()
 
     def load_map_data(self):
         file_name = 'level_1.json'
@@ -81,6 +82,15 @@ class Level:
             x, y = box_data['x'], box_data['y']
             box_type = box_data['type']
             self.box_group.add(box.Box(x, y, box_type))
+
+    def setup_enemies(self):
+        self.enemy_group_dict = {}
+        for enemy_group_data in self.map_datas['enemy']:
+            group = pygame.sprite.Group()
+            for enemy_group_id, enemy_data_list in enemy_group_data.items():
+                for enemy_data in enemy_data_list:
+                    group.add(enemy.create_enemy(enemy_data))
+                    self.enemy_group_dict[enemy_group_id] = group
 
     def adjust_player_x(self, sprite):
         if self.player.rect.x < sprite.rect.x:
@@ -161,6 +171,8 @@ class Level:
         self.brick_group.draw(self.game_ground)
         self.box_group.draw(self.game_ground)
         self.game_ground.blit(self.player.image,self.player.rect)
+        for enemy_group in self.enemy_group_dict.values():
+            enemy_group.draw(self.game_ground)
         surface.blit(self.game_ground,(0,0),self.game_window)
         self.info.draw(surface)
 
