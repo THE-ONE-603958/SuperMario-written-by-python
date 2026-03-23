@@ -20,6 +20,7 @@ class Level:
         self.setup_bricks()
         self.setup_boxs()
         self.setup_enemies()
+        self.setup_checkpoints()
 
     def load_map_data(self):
         file_name = 'level_1.json'
@@ -84,6 +85,7 @@ class Level:
             self.box_group.add(box.Box(x, y, box_type))
 
     def setup_enemies(self):
+        self.enemy_group =pygame.sprite.Group()
         self.enemy_group_dict = {}
         for enemy_group_data in self.map_datas['enemy']:
             group = pygame.sprite.Group()
@@ -91,6 +93,21 @@ class Level:
                 for enemy_data in enemy_data_list:
                     group.add(enemy.create_enemy(enemy_data))
                     self.enemy_group_dict[enemy_group_id] = group
+
+    def setup_checkpoints(self):
+        self.checkpoint_group = pygame.sprite.Group()
+        for item in self.map_datas['checkpoint']:
+            x, y,w,h = item['x'], item['y'], item['width'], item['height']
+            checkpoint_type = item['type']
+            enemy_groupid = item.get('enemy_groupid')
+            self.checkpoint_group.add(stuff.Checkpoint(x,y,w,h,checkpoint_type,enemy_groupid))
+
+    def Check_checkpoints(self):
+        checkpoint = pygame.sprite.spritecollideany(self.player, self.checkpoint_group)
+        if checkpoint:
+            if checkpoint.checkpoint_type == 0:
+                self.enemy_group.add(self.enemy_group_dict[str(checkpoint.enemy_groupid)])
+            checkpoint.kill()
 
     def adjust_player_x(self, sprite):
         if self.player.rect.x < sprite.rect.x:
@@ -158,12 +175,15 @@ class Level:
                 self.update_game_info()
         else:
             self.info.update()
+            self.Check_checkpoints()
             self.update_player_position()
             self.update_game_window()
             self.brick_group.update()
             self.box_group.update()
             self.check_if_go_die()
+            self.enemy_group.update(self)
         self.draw(surface)
+        # keys()获取所有键,values() 获取所有值， items()获取所有键值对
 
     def draw(self,surface):
         self.game_ground.fill((0,0,0))
@@ -171,8 +191,7 @@ class Level:
         self.brick_group.draw(self.game_ground)
         self.box_group.draw(self.game_ground)
         self.game_ground.blit(self.player.image,self.player.rect)
-        for enemy_group in self.enemy_group_dict.values():
-            enemy_group.draw(self.game_ground)
+        self.enemy_group.draw(self.game_ground)
         surface.blit(self.game_ground,(0,0),self.game_window)
         self.info.draw(surface)
 
