@@ -22,7 +22,7 @@ class LoadScreen:
         surface.fill((0,0,0))
         self.info.draw(surface)
 
-class GameOverScreen(LoadScreen):
+class GameOverScreen(LoadScreen): #GameOverScreen 会自动获得 LoadScreen 中的所有方法和属性
     def start(self,game_info):
         self.game_info = game_info
         self.finished = False

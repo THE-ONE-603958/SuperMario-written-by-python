@@ -19,10 +19,17 @@ if __name__ == '__main__':
 
 
 """
-# 1. 创建 LoadScreen 实例（使用默认的 __init__）
-load_screen = load_screen.LoadScreen()  # ✅ 成功，不需要参数
-
-# 2. 后续在其他地方调用 start 方法传递 game_info
-# 在 tools.Game 的某个地方（可能是在状态切换时）
-load_screen.start(game_info)  # 这时才传递 game_info
+当类没有定义 __init__ 方法时：
+class LoadScreen:
+    def start(self,game_info):
+        self.game_info = game_info
+        self.finished = False
+        self.next_state = 'level'
+        self.timer = 0
+        self.duration = 2000
+        self.info = info.Info('load_screen',self.game_info)
+Python 会自动提供默认的 __init__ 方法
+默认的 __init__ 方法不接受任何参数（除了 self）
+因此 LoadScreen() 可以无参数创建实例
+    load_screen.LoadScreen(self,game_info)
 """
