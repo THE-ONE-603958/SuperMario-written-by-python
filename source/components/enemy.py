@@ -64,7 +64,7 @@ class Enemy(pygame.sprite.Sprite):
 
     def walk(self):
         if self.current_time -self.timer > 125:
-            self.frame_index = (self.frame_index + 1) % 2
+            self.frame_index = (self.frame_index + 1) % 2 #让 frame_index 在 0 和 1 之间循环，形成走路效果
             self.image = self.frames[self.frame_index]
             self.timer = self.current_time
 
@@ -73,7 +73,7 @@ class Enemy(pygame.sprite.Sprite):
             self.y_vel += self.gravity
 
     def check_x_collision(self,level):
-        sprite= pygame.sprite.spritecollideany(self,level.game_items_group) # 添加第三个参数 dokill=False（保留被碰撞的物体）
+        sprite= pygame.sprite.spritecollideany(self,level.game_items_group)
         if sprite:
             self.direction = 1 if self.direction == 0 else 0
             self.x_vel *= -1
@@ -81,13 +81,11 @@ class Enemy(pygame.sprite.Sprite):
     def check_y_collision(self,level):
         check_group = pygame.sprite.Group(level.game_items_group,level.box_group,level.brick_group)
         sprite = pygame.sprite.spritecollideany(self,check_group)
-        # sprite 实际上是一个列表：[sprite1, sprite2, sprite3, ...]
         if sprite:
             if self.rect.top < sprite.rect.top:
                 self.rect.bottom = sprite.rect.top
                 self.y_vel = 0
                 self.state = 'walk'
-    #
         level.check_will_fall_or_not(self)
 
     def update_enemy_positon(self,level):
@@ -121,6 +119,9 @@ class Koopa(Enemy):
             rect_frames = dark_rect_frames
 
         Enemy.__init__(self,x,y_b,direction,name,rect_frames)
+
+
+
 """
 继承的优势：
 
@@ -132,82 +133,12 @@ class Koopa(Enemy):
 
 维护性 - 修改公共逻辑只需改父类
 
-################################################################
-步骤1：调用 create_enemy(enemy_data)
+注意：
 
-# 传入 enemy_data
-    enemy_data = {"x":1120, "y":538, "direction":0, "type":0, "color":0}
-    def create_enemy(enemy_data):
-        enemy_type = enemy_data['type']  # 0
+其中level 是以类的实例（对象）作为参数进行传递的，而不是传递类本身
 
-    if enemy_type == 0:  # True
-        # 创建 Goomba 实例
-        enemy = Goomba(x, y, direction, 'goomba', color)
-        # 内部调用 Enemy.__init__(self, 1120, 538, 0, 'goomba', rect_frames)
-        # rect_frames 根据 color=0 选择 bright_rect_frames
-    return enemy  # 返回 Goomba 实例
+因为每个关卡实例有独立的状态（玩家位置、敌人位置、碰撞组等）
 
-步骤2：
-添加到精灵组
- 
-    group.add(goomba_instance) 
-    
-    第三次次迭代后：
-    group = pygame.sprite.Group()
-    group.add(Goomba3)  # 添加第1个Goomba
-    group.add(Goomba4)  # 添加第2个Goomba
-    # group现在包含2个Goomba
-    ....
-    
-存储敌人组到字典
-    self.enemy_group_dict = {
-        "0": <pygame.sprite.Group with 1 Goomba>,
-        "1": <pygame.sprite.Group with 1 Goomba>,
-        "2": <pygame.sprite.Group with 2 Goombas>
-    }
-    
-    setup_enemies() 开始
-    │
-    ├─ self.enemy_group_dict = {}
-    │
-    ├─ 遍历 enemy 列表 (10个组)
-    │   │
-    │   ├─ 迭代1: enemy_group_data = {"0": [enemy1_data]}
-    │   │   ├─ group = pygame.sprite.Group()
-    │   │   ├─ items() → ("0", [enemy1_data])
-    │   │   ├─ 遍历 enemy_list
-    │   │   │   ├─ enemy_data = {"x":1120, "y":538, "direction":0, "type":0, "color":0}
-    │   │   │   ├─ create_enemy(enemy_data)
-    │   │   │   │   ├─ type=0 → Goomba(1120,538,0,'goomba',0)
-    │   │   │   │   └─ 返回 Goomba实例
-    │   │   │   └─ group.add(goomba)
-    │   │   └─ enemy_group_dict["0"] = group
-    │   │
-    │   ├─ 迭代2: enemy_group_data = {"1": [enemy2_data]}
-    │   │   └─ ... 类似流程，创建 group "1"
-    │   │
-    │   ├─ 迭代3: enemy_group_data = {"2": [enemy3_data, enemy4_data]}
-    │   │   ├─ group = pygame.sprite.Group()
-    │   │   ├─ items() → ("2", [enemy3_data, enemy4_data])
-    │   │   ├─ 遍历 enemy_list (2次)
-    │   │   │   ├─ 第1次: 创建 Goomba(2320,538,0,'goomba',0)
-    │   │   │   ├─ group.add(goomba1)
-    │   │   │   ├─ 第2次: 创建 Goomba(2380,538,0,'goomba',0)
-    │   │   │   └─ group.add(goomba2)
-    │   │   └─ enemy_group_dict["2"] = group
-    │   │
-    │   ├─ 迭代4-10: 类似流程处理组 "3" 到 "9"
-    │   │
-    │   └─ 迭代5: enemy_group_data = {"5": [koopa_data]}
-    │       ├─ group = pygame.sprite.Group()
-    │       ├─ items() → ("5", [koopa_data])
-    │       ├─ enemy_data = {"x":4700, "y":538, "direction":0, "type":1, "color":1}
-    │       ├─ create_enemy(enemy_data)
-    │       │   ├─ type=1 → Koopa(4700,538,0,'koopa',1)
-    │       │   └─ 返回 Koopa实例
-    │       ├─ group.add(koopa)
-    │       └─ enemy_group_dict["5"] = group
-    │
-    └─ setup_enemies() 结束
+敌人需要访问当前关卡实例的具体数据，而不是关卡类本身
 
 """

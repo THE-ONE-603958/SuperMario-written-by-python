@@ -19,7 +19,7 @@ class Level:
         self.setup_player_start_position()
         self.setup_bricks()
         self.setup_boxs()
-        self.setup_enemies()
+        self.init_enemy_system()  # 统一初始化敌人系统
         self.setup_checkpoints()
 
     def load_map_data(self):
@@ -84,15 +84,25 @@ class Level:
             box_type = box_data['type']
             self.box_group.add(box.Box(x, y, box_type))
 
-    def setup_enemies(self):
-        self.enemy_group =pygame.sprite.Group()
+    def init_enemy_system(self):
+        """初始化敌人系统"""
+        self.enemy_group = pygame.sprite.Group()
         self.enemy_group_dict = {}
+        self.setup_enemies()  # 实际加载敌人数据
+
+    def setup_enemies(self):
         for enemy_group_data in self.map_datas['enemy']:
             group = pygame.sprite.Group()
-            for enemy_group_id, enemy_data_list in enemy_group_data.items():
+            for enemy_group_id, enemy_data_list in enemy_group_data.items(): #这里的enemy_group_id是字符串
                 for enemy_data in enemy_data_list:
                     group.add(enemy.create_enemy(enemy_data))
                     self.enemy_group_dict[enemy_group_id] = group
+
+    def activate_enemy_group(self, group_id):
+        """激活指定的敌人组"""
+        if group_id in self.enemy_group_dict:
+            self.enemy_group.add(self.enemy_group_dict[group_id])
+        # self.debug_enemy_system()
 
     def setup_checkpoints(self):
         self.checkpoint_group = pygame.sprite.Group()
@@ -103,11 +113,11 @@ class Level:
             self.checkpoint_group.add(stuff.Checkpoint(x,y,w,h,checkpoint_type,enemy_groupid))
 
     def Check_checkpoints(self):
-        checkpoint = pygame.sprite.spritecollideany(self.player, self.checkpoint_group)
+        checkpoint = pygame.sprite.spritecollideany(self.player, self.checkpoint_group)#返回第一个碰撞的精灵
         if checkpoint:
-            if checkpoint.checkpoint_type == 0:
-                self.enemy_group.add(self.enemy_group_dict[str(checkpoint.enemy_groupid)])
-            checkpoint.kill()
+            if checkpoint.checkpoint_type == 0: # type 0 = 激活敌人
+                self.activate_enemy_group(str(checkpoint.enemy_groupid)) #将敌人组ID从整数类型转换为字符串类型
+            checkpoint.kill() # 移除检查点，避免重复激活
 
     def adjust_player_x(self, sprite):
         if self.player.rect.x < sprite.rect.x:
@@ -151,10 +161,10 @@ class Level:
         if self.player.rect.y > C.SCREEN_H:
             self.player.go_die()
 
-    def update_game_window(self):
+    def update_game_window(self):#相机系统
         third = self.game_window.x + self.game_window.width / 3
         if self.player.x_vel > 0 and self.player.rect.centerx > third and self.game_window.right < self.map_end_x:
-            self.game_window.x += self.player.x_vel
+            self.game_window.x += self.player.x_vel # 相机跟随
             self.map_start_x = self.game_window.x
 
     def update_game_info(self):
@@ -181,23 +191,23 @@ class Level:
             self.brick_group.update()
             self.box_group.update()
             self.check_if_go_die()
-            self.enemy_group.update(self)
+            self.enemy_group.update(self)# 更新敌人（传递关卡对象）
         self.draw(surface)
-        # keys()获取所有键,values() 获取所有值， items()获取所有键值对
 
     def draw(self,surface):
         self.game_ground.fill((0,0,0))
-        self.game_ground.blit(self.background, self.game_window,self.game_window)
+        self.game_ground.blit(self.background, self.game_window,self.game_window)# 绘制背景（相机裁剪）
         self.brick_group.draw(self.game_ground)
         self.box_group.draw(self.game_ground)
         self.game_ground.blit(self.player.image,self.player.rect)
         self.enemy_group.draw(self.game_ground)
-        surface.blit(self.game_ground,(0,0),self.game_window)
+        surface.blit(self.game_ground,(0,0),self.game_window)# 将画布绘制到屏幕（相机效果）
         self.info.draw(surface)
 
 
 
 """
+##############################################################
 def adjust_player_x(self, sprite):
 pass
 
@@ -229,5 +239,118 @@ pass
    
    此时 player.rect.bottom < sprite.rect.bottom 为 False
 → 玩家应该被顶下来
+###########################################################################################################  
 
+enemy_group.update(self) 中的 self 是当前 Level 实例，传给每个敌人，让敌人能够访问 Level 的属性和方法（例如 level.game_items_group）
+
+Level.update(self, surface, keys)
+    │
+    ├─ self 是 Level 实例 (包含 game_items_group, brick_group, box_group 等)
+    │
+    └─ for enemy_group in self.enemy_group_dict.values():
+            enemy_group.update(self)  # 传递 Level 实例
+                │
+                └─ pygame.sprite.Group.update(self, *args)
+                    │
+                    └─ for sprite in self.sprites():
+                            sprite.update(*args)  # args = (self,)
+                                │
+                                └─ Enemy.update(self, level)  # level = Level 实例
+                                    │
+                                    ├─ self.handle_states()
+                                    │
+                                    └─ self.update_enemy_positon(level)
+                                        │
+                                        └─ self.check_x_collsion(level)
+                                            │
+                                            └─ 使用 level.game_items_group
+                                            
+###########################################################################################################                                               
+json示例：
+"enemy":[
+    {"0":[
+        {"x":1120, "y":538, "direction":0, "type":0, "color":0}
+    ]},
+    {"1":[
+        {"x":1920, "y":538, "direction":0, "type":0, "color":0}
+    ]}
+]
+
+创建敌人字典：
+self.enemy_group_dict = {
+    "0": Group[Goomba(x=1120, y=538, direction=0)],
+    "1": Group[Goomba(x=1920, y=538, direction=0)]
+}
+
+###########################################################################################################                                  
+    
+    初始化阶段:
+┌─────────────────────────────────────────────┐
+│  self.enemy_group_dict (休眠敌人仓库)         │
+├─────────────────────────────────────────────┤
+│  "0" → [Goomba1]     (未激活)                │
+│  "1" → [Goomba2]     (未激活)                │
+│  "2" → [Goomba3, Goomba4] (未激活)           │
+└─────────────────────────────────────────────┘
+                    ↓
+         self.enemy_group = [] (活跃敌人组)
+
+玩家移动:
+    x=0 → x=510 (触发检查点0)
+                    ↓
+┌─────────────────────────────────────────────┐
+│  激活敌人组"0"                                
+│  self.enemy_group = [Goomba1]               │
+└─────────────────────────────────────────────┘
+
+玩家继续移动:
+    x=1400 (触发检查点1)
+                    ↓
+┌─────────────────────────────────────────────┐
+│  激活敌人组"1"                                
+│  self.enemy_group = [Goomba1, Goomba2]      │
+└─────────────────────────────────────────────┘
+
+玩家继续移动:
+    x=1740 (触发检查点2)
+                    ↓
+┌─────────────────────────────────────────────┐
+│  激活敌人组"2"                               
+│  self.enemy_group = [Goomba1, Goomba2,      │
+│                     Goomba3, Goomba4]       │
+└─────────────────────────────────────────────┘
+
+
+###########################################################################################################   
+按键触发调试
+def update(self, surface, keys):
+    # ... 游戏逻辑 ...
+    
+    # 按F3键输出调试信息
+    if keys[pygame.K_F3]:
+        self.debug_enemy_system()
+    
+    self.draw(surface)
+
+在特定事件时调用
+def Check_checkpoints(self):
+    checkpoint = pygame.sprite.spritecollideany(self.player, self.checkpoint_group)
+    if checkpoint:
+        if checkpoint.checkpoint_type == 0:
+            self.activate_enemy_group(str(checkpoint.enemy_groupid))
+            # 激活敌人后立即输出状态
+            print(f"激活敌人组{checkpoint.enemy_groupid}后的状态：")
+            self.debug_enemy_system()
+        checkpoint.kill()
+调试代码：
+   def debug_enemy_system(self):
+        print("=== 敌人系统状态 ===")
+        print(f"活跃敌人数量: {len(self.enemy_group)}") #获取活跃敌人组中的精灵数量
+        print(f"休眠敌人组: {list(self.enemy_group_dict.keys())}") #获取字典的所有键,list()：将键转换为列表，便于显示 
+
+        for group_id, group in self.enemy_group_dict.items():
+            print(f"组{group_id}: {len(group)}个敌人") #len(group)：获取该组中的敌人数量
+
+        for enemy in self.enemy_group:
+            print(f"活跃敌人: {enemy.name} at ({enemy.rect.x}, {enemy.rect.y})")
 """
