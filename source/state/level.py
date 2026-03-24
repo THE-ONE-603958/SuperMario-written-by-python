@@ -61,8 +61,10 @@ class Level:
             self.player.rect.right = self.map_end_x
         self.check_x_collision()
 
-        self.player.rect.y += self.player.y_vel
-        self.check_y_collision()
+        # y direction
+        if not self.player.dead:
+            self.player.rect.y += self.player.y_vel
+            self.check_y_collision()
 
     def setup_bricks(self):
         self.brick_group = pygame.sprite.Group()
@@ -89,6 +91,7 @@ class Level:
         self.enemy_group = pygame.sprite.Group()
         self.enemy_group_dict = {}
         self.setup_enemies()  # 实际加载敌人数据
+        self.dying_group = pygame.sprite.Group()
 
     def setup_enemies(self):
         for enemy_group_data in self.map_datas['enemy']:
@@ -142,12 +145,29 @@ class Level:
         if collision_occurs:
             self.adjust_player_x(collision_occurs)
 
+        enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
+        if enemy:
+            self.player.go_die()
+
     def check_y_collision(self):
         check_group = pygame.sprite.Group(self.game_items_group, self.brick_group,self.box_group)
         collision_occurs = pygame.sprite.spritecollideany(self.player, check_group)
         if collision_occurs:
             self.adjust_player_y(collision_occurs)
         self.check_will_fall_or_not(self.player)
+
+        enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
+        if enemy:
+            self.enemy_group.remove(enemy)
+            self.enemy_group.add(enemy)
+            if self.player.y_vel < 0:
+                how =  'bumped'
+            else:
+                how = 'trampled'
+                self.player.state = 'jump'
+                self.player.rect.bottom = enemy.rect.top
+                self.player.y_vel = self.player.jump_vel * 0.8
+            enemy.go_die(how)
 
     def check_will_fall_or_not(self, sprite):
         sprite.rect.y += 1
@@ -192,6 +212,7 @@ class Level:
             self.box_group.update()
             self.check_if_go_die()
             self.enemy_group.update(self)# 更新敌人（传递关卡对象）
+            self.dying_group.update()
         self.draw(surface)
 
     def draw(self,surface):
@@ -201,6 +222,7 @@ class Level:
         self.box_group.draw(self.game_ground)
         self.game_ground.blit(self.player.image,self.player.rect)
         self.enemy_group.draw(self.game_ground)
+        self.dying_group.draw(self.game_ground)
         surface.blit(self.game_ground,(0,0),self.game_window)# 将画布绘制到屏幕（相机效果）
         self.info.draw(surface)
 
