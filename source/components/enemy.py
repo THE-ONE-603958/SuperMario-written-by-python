@@ -92,7 +92,7 @@ class Enemy(pygame.sprite.Sprite):
     def slide(self):
         pass
 
-    def update_enemy_positon(self,level):
+    def update_positon(self,level):
         self.rect.x += self.x_vel
         self.check_x_collision(level)
         self.rect.y += self.y_vel
@@ -131,7 +131,7 @@ class Enemy(pygame.sprite.Sprite):
     def update(self,level):
         self.current_time = pygame.time.get_ticks()
         self.handle_states(level)
-        self.update_enemy_positon(level)
+        self.update_positon(level)
 
 class Goomba(Enemy):
     def __init__(self,x,y_b,direction,name,color):

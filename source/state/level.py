@@ -181,6 +181,12 @@ class Level:
                     shell.direction = 0
                 shell.state = 'slide'
 
+        powerup = pygame.sprite.spritecollideany(self.player, self.powerup_group)
+        if powerup:
+            powerup.kill()
+            if powerup.name == 'mushroom':
+                self.player.state = 'small2big'
+
     def check_y_collision(self):
         ground_item = pygame.sprite.spritecollideany(self.player,self.ground_items_group)
         brick = pygame.sprite.spritecollideany(self.player,self.brick_group)
@@ -264,20 +270,21 @@ class Level:
             self.dying_group.update(self)
             self.shell_group.update(self)
             self.coin_group.update()
-            self.box_group.update()
+            self.powerup_group.update(self)
+
 
         self.draw(surface)
 
     def draw(self,surface):
         self.game_ground.fill((0,0,0))
         self.game_ground.blit(self.background, self.game_window,self.game_window)# 绘制背景（相机裁剪）
+        self.powerup_group.draw(self.game_ground)
         self.brick_group.draw(self.game_ground)
         self.box_group.draw(self.game_ground)
         self.game_ground.blit(self.player.image,self.player.rect)
         self.enemy_group.draw(self.game_ground)
         self.dying_group.draw(self.game_ground)
         self.shell_group.draw(self.game_ground)
-        self.powerup_group.draw(self.game_ground)
         self.coin_group.draw(self.game_ground)
         surface.blit(self.game_ground,(0,0),self.game_window)# 将画布绘制到屏幕（相机效果）
         self.info.draw(surface)
