@@ -49,23 +49,6 @@ class Level:
             for item in self.map_datas[name]:
                 self.game_items_group.add(stuff.Item(item['x'], item['y'], item['width'], item['height'], name))
 
-    def setup_player_start_position(self):
-        self.player.rect.x = self.game_window.x + self.player_x
-        self.player.rect.bottom = self.player_y
-
-    def update_player_position(self):
-        self.player.rect.x += self.player.x_vel
-        if self.player.rect.x < self.map_start_x:
-            self.player.rect.x = self.map_start_x
-        elif self.player.rect.right > self.map_end_x:
-            self.player.rect.right = self.map_end_x
-        self.check_x_collision()
-
-        # y direction
-        if not self.player.dead:
-            self.player.rect.y += self.player.y_vel
-            self.check_y_collision()
-
     def setup_bricks(self):
         self.brick_group = pygame.sprite.Group()
 
@@ -86,12 +69,30 @@ class Level:
             box_type = box_data['type']
             self.box_group.add(box.Box(x, y, box_type))
 
+    def setup_player_start_position(self):
+        self.player.rect.x = self.game_window.x + self.player_x
+        self.player.rect.bottom = self.player_y
+
+    def update_player_position(self):
+        self.player.rect.x += self.player.x_vel
+        if self.player.rect.x < self.map_start_x:
+            self.player.rect.x = self.map_start_x
+        elif self.player.rect.right > self.map_end_x:
+            self.player.rect.right = self.map_end_x
+        self.check_x_collision()
+
+        # y direction
+        if not self.player.dead:
+            self.player.rect.y += self.player.y_vel
+            self.check_y_collision()
+
     def init_enemy_system(self):
         """初始化敌人系统"""
         self.enemy_group = pygame.sprite.Group()
         self.enemy_group_dict = {}
         self.setup_enemies()  # 实际加载敌人数据
         self.dying_group = pygame.sprite.Group()
+        self.shell_group = pygame.sprite.Group()
 
     def setup_enemies(self):
         for enemy_group_data in self.map_datas['enemy']:
@@ -145,9 +146,24 @@ class Level:
         if collision_occurs:
             self.adjust_player_x(collision_occurs)
 
-        enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
-        if enemy:
-            self.player.go_die()
+        # enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
+        # if enemy:
+        #     self.player.go_die()
+
+        shell = pygame.sprite.spritecollideany(self.player, self.shell_group)
+        if shell:
+            if shell.state == 'slide':
+                self.player.go_die()
+            else:
+                if self.player.rect.x < shell.rect.x:
+                    shell.x_vel = 10
+                    shell.rect.x += 40
+                    shell.direction = 1
+                else:
+                    shell.x_vel = -10
+                    shell.rect.x -= 40
+                    shell.direction = 0
+                shell.state = 'slide'
 
     def check_y_collision(self):
         check_group = pygame.sprite.Group(self.game_items_group, self.brick_group,self.box_group)
@@ -159,7 +175,11 @@ class Level:
         enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
         if enemy:
             self.enemy_group.remove(enemy)
-            self.enemy_group.add(enemy)
+            if enemy.name == 'koopa':
+                self.shell_group.add(enemy)
+            else:
+                self.dying_group.add(enemy)
+
             if self.player.y_vel < 0:
                 how =  'bumped'
             else:
@@ -212,7 +232,8 @@ class Level:
             self.box_group.update()
             self.check_if_go_die()
             self.enemy_group.update(self)# 更新敌人（传递关卡对象）
-            self.dying_group.update()
+            self.dying_group.update(self)
+            self.shell_group.update(self)
         self.draw(surface)
 
     def draw(self,surface):
@@ -223,6 +244,7 @@ class Level:
         self.game_ground.blit(self.player.image,self.player.rect)
         self.enemy_group.draw(self.game_ground)
         self.dying_group.draw(self.game_ground)
+        self.shell_group.draw(self.game_ground)
         surface.blit(self.game_ground,(0,0),self.game_window)# 将画布绘制到屏幕（相机效果）
         self.info.draw(surface)
 

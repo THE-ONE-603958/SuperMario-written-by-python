@@ -42,12 +42,7 @@ class Enemy(pygame.sprite.Sprite):
             self.left_frames.append(left_frame)
             self.right_frames.append(right_frame)
 
-    def update(self,level):
-        self.current_time = pygame.time.get_ticks()
-        self.handle_states()
-        self.update_enemy_positon(level)
-
-    def handle_states(self):
+    def handle_states(self,level):
         if self.state == 'walk':
             self.walk()
         elif self.state == 'fall':
@@ -55,7 +50,9 @@ class Enemy(pygame.sprite.Sprite):
         elif self.state == 'die':
             self.die()
         elif self.state == 'trampled':
-            self.trampled()
+            self.trampled(level)
+        elif self.state == 'slide':
+            self.slide()
 
         if self.direction:
             self.image = self.right_frames[self.frame_index]
@@ -72,6 +69,9 @@ class Enemy(pygame.sprite.Sprite):
         if self.y_vel < 10:
             self.y_vel += self.gravity
 
+    def trampled(self,level):
+        pass
+
     def die(self):
         self.rect.x += self.x_vel
         self.rect.y += self.y_vel
@@ -79,14 +79,44 @@ class Enemy(pygame.sprite.Sprite):
         if self.rect.y > C.SCREEN_H:
             self.kill()
 
-    def trampled(self):
+    def go_die(self,how):
+        self.death_timer = self.current_time
+        if how in ['bumped','slided']:
+            self.y_vel = -8
+            self.gravity = 0.6
+            self.state = "die"
+            self.frame_index = 2
+        elif how == 'trampled':
+            self.state = "trampled"
+
+    def slide(self):
         pass
+
+    def update_enemy_positon(self,level):
+        self.rect.x += self.x_vel
+        self.check_x_collision(level)
+        self.rect.y += self.y_vel
+        if self.state != 'die':
+            self.check_y_collision(level)
 
     def check_x_collision(self,level):
         sprite= pygame.sprite.spritecollideany(self,level.game_items_group)
         if sprite:
-            self.direction = 1 if self.direction == 0 else 0
+            # self.direction = 1 if self.direction == 0 else 0 #该代码中敌人可能会"嵌入"到障碍物中，由此触发check_y_collision
+            if self.direction: #向右
+                self.direction = 0
+                self.rect.right = sprite.rect.left
+            else:
+                self.direction = 1
+                self.rect.left = sprite.rect.right
             self.x_vel *= -1
+
+        if self.state == 'slide':
+            enemy = pygame.sprite.spritecollideany(self,level.enemy_group)
+            if enemy:
+                enemy.go_die(how='slided')
+                level.enemy_group.remove(enemy)
+                level.dying_group.add(enemy)
 
     def check_y_collision(self,level):
         check_group = pygame.sprite.Group(level.game_items_group,level.box_group,level.brick_group)
@@ -98,22 +128,10 @@ class Enemy(pygame.sprite.Sprite):
                 self.state = 'walk'
         level.check_will_fall_or_not(self)
 
-    def update_enemy_positon(self,level):
-        self.rect.x += self.x_vel
-        self.check_x_collision(level)
-        self.rect.y += self.y_vel
-        if self.state != 'die':
-            self.check_y_collision(level)
-
-    def go_die(self,how):
-        self.death_timer = self.current_time
-        if how == 'bumped':
-            self.y_vel = -8
-            self.gravity = 0.6
-            self.state = "die"
-            self.frame_index = 0
-        elif how == 'trampled':
-            self.state = "trampled"
+    def update(self,level):
+        self.current_time = pygame.time.get_ticks()
+        self.handle_states(level)
+        self.update_enemy_positon(level)
 
 class Goomba(Enemy):
     def __init__(self,x,y_b,direction,name,color):
@@ -128,7 +146,7 @@ class Goomba(Enemy):
 
         Enemy.__init__(self,x,y_b,direction,name,rect_frames)
 
-    def trampled(self):
+    def trampled(self,level):
         self.x_vel = 0
         self.frame_index = 2
         if self.death_timer == 0:
@@ -148,8 +166,22 @@ class Koopa(Enemy):
             rect_frames = dark_rect_frames
 
         Enemy.__init__(self,x,y_b,direction,name,rect_frames)
+        self.shell_timer = 0
 
-    def trampled(self):
+    def trampled(self,level):
+        self.x_vel = 0
+        self.frame_index = 2
+
+        if self.shell_timer == 0:
+            self.shell_timer = self.current_time
+        if self.current_time - self.shell_timer > 5000:
+            self.state = 'walk'
+            self.x_vel = -C.ENEMY_SPEED if self.direction == 0 else C.ENEMY_SPEED
+            level.enemy_group.add(self)
+            level.shell_group.remove(self)
+            self.shell_timer = 0
+
+    def slide(self):
         pass
 
 
