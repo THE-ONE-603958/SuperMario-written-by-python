@@ -1,13 +1,15 @@
 import pygame
 from source import tools,setup
 from source import constants as C
+from .powerup import create_powerup
 
 class Box(pygame.sprite.Sprite):
-    def __init__(self, x, y, box_type, name='box'):
+    def __init__(self, x, y, box_type, group,name='box'):
         pygame.sprite.Sprite.__init__(self)
         self.x = x
         self.y = y
         self.box_type = box_type
+        self.group = group
         self.name = name
         self.rect_frames = [
             (384,0,16,16),
@@ -58,6 +60,12 @@ class Box(pygame.sprite.Sprite):
         if self.rect.y > self.y + 10:
             self.rect.y = self.y
             self.state = 'open'
+
+            # box_type 0,1,2,3对应空，金币，星星，蘑菇
+            if self.box_type == 1:
+                pass
+            else:
+                self.group.add(create_powerup(self.rect.centerx,self.rect.centery,self.box_type))
 
     def open(self):
         pass

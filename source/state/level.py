@@ -17,9 +17,8 @@ class Level:
         self.setup_game_items()
         self.player = player.Player('mario')
         self.setup_player_start_position()
-        self.setup_bricks()
-        self.setup_boxs()
-        self.init_enemy_system()  # 统一初始化敌人系统
+        self.setup_bricks_and_boxes()
+        self.init_enemy_system()
         self.setup_checkpoints()
 
     def load_map_data(self):
@@ -43,32 +42,6 @@ class Level:
             self.positions.append((map_data['start_x'], map_data['end_x'],map_data['player_x'],map_data['player_y']))
             self.map_start_x, self.map_end_x, self.player_x, self.player_y = self.positions[0]
 
-    def setup_game_items(self):
-        self.ground_items_group = pygame.sprite.Group()
-        for name in ['ground', 'pipe', 'step']:
-            for item in self.map_datas[name]:
-                self.ground_items_group.add(stuff.Item(item['x'], item['y'], item['width'], item['height'], name))
-
-    def setup_bricks(self):
-        self.brick_group = pygame.sprite.Group()
-
-        if 'brick' in self.map_datas:
-            for brick_data in self.map_datas['brick']:
-                x, y = brick_data['x'], brick_data['y']
-                brick_type = brick_data['type']
-                if 'brick_num' in brick_data:
-                    # TODO BATCH BRICKS
-                    pass
-                else:
-                    self.brick_group.add(brick.Brick(x, y, brick_type))
-
-    def setup_boxs(self):
-        self.box_group = pygame.sprite.Group()
-        for box_data in self.map_datas['box']:
-            x, y = box_data['x'], box_data['y']
-            box_type = box_data['type']
-            self.box_group.add(box.Box(x, y, box_type))
-
     def setup_player_start_position(self):
         self.player.rect.x = self.game_window.x + self.player_x
         self.player.rect.bottom = self.player_y
@@ -80,7 +53,6 @@ class Level:
         elif self.player.rect.right > self.map_end_x:
             self.player.rect.right = self.map_end_x
         self.check_x_collision()
-
         # y direction
         if not self.player.dead:
             self.player.rect.y += self.player.y_vel
@@ -93,6 +65,42 @@ class Level:
         self.setup_enemies()  # 实际加载敌人数据
         self.dying_group = pygame.sprite.Group()
         self.shell_group = pygame.sprite.Group()
+
+    def setup_game_items(self):
+        self.ground_items_group = pygame.sprite.Group()
+        for name in ['ground', 'pipe', 'step']:
+            for item in self.map_datas[name]:
+                self.ground_items_group.add(stuff.Item(item['x'], item['y'], item['width'], item['height'], name))
+
+    def setup_bricks_and_boxes(self):
+        self.brick_group = pygame.sprite.Group()
+        self.box_group = pygame.sprite.Group()
+        self.coin_group = pygame.sprite.Group()
+        self.powerup_group = pygame.sprite.Group()
+
+        if 'brick' in self.map_datas:
+            for brick_data in self.map_datas['brick']:
+                x, y = brick_data['x'], brick_data['y']
+                brick_type = brick_data['type']
+                if brick_type == 0:
+                    if 'brick_num' in brick_data:
+                        # TODO BATCH BRICKS
+                        pass
+                    else:
+                        self.brick_group.add(brick.Brick(x, y, brick_type,None))
+                elif brick_type == 1:
+                    self.brick_group.add(brick.Brick(x, y, brick_type,self.coin_group))
+                else:
+                    self.brick_group.add(brick.Brick(x, y, brick_type,self.powerup_group))
+
+        if 'box' in self.map_datas:
+            for box_data in self.map_datas['box']:
+                x, y = box_data['x'], box_data['y']
+                box_type = box_data['type']
+                if box_type == 1:
+                    self.box_group.add(box.Box(x, y, box_type,self.coin_group))
+                else:
+                    self.box_group.add(box.Box(x, y, box_type,self.powerup_group))
 
     def setup_enemies(self):
         for enemy_group_data in self.map_datas['enemy']:
@@ -255,6 +263,9 @@ class Level:
             self.enemy_group.update(self)# 更新敌人（传递关卡对象）
             self.dying_group.update(self)
             self.shell_group.update(self)
+            self.coin_group.update()
+            self.box_group.update()
+
         self.draw(surface)
 
     def draw(self,surface):
@@ -266,6 +277,8 @@ class Level:
         self.enemy_group.draw(self.game_ground)
         self.dying_group.draw(self.game_ground)
         self.shell_group.draw(self.game_ground)
+        self.powerup_group.draw(self.game_ground)
+        self.coin_group.draw(self.game_ground)
         surface.blit(self.game_ground,(0,0),self.game_window)# 将画布绘制到屏幕（相机效果）
         self.info.draw(surface)
 
