@@ -100,7 +100,7 @@ class Enemy(pygame.sprite.Sprite):
             self.check_y_collision(level)
 
     def check_x_collision(self,level):
-        sprite= pygame.sprite.spritecollideany(self,level.game_items_group)
+        sprite= pygame.sprite.spritecollideany(self,level.ground_items_group)
         if sprite:
             # self.direction = 1 if self.direction == 0 else 0 #该代码中敌人可能会"嵌入"到障碍物中，由此触发check_y_collision
             if self.direction: #向右
@@ -119,7 +119,7 @@ class Enemy(pygame.sprite.Sprite):
                 level.dying_group.add(enemy)
 
     def check_y_collision(self,level):
-        check_group = pygame.sprite.Group(level.game_items_group,level.box_group,level.brick_group)
+        check_group = pygame.sprite.Group(level.ground_items_group,level.box_group,level.brick_group)
         sprite = pygame.sprite.spritecollideany(self,check_group)
         if sprite:
             if self.rect.top < sprite.rect.top:
@@ -144,7 +144,7 @@ class Goomba(Enemy):
         else:
             rect_frames = dark_rect_frames
 
-        Enemy.__init__(self,x,y_b,direction,name,rect_frames)
+        Enemy.__init__(self,x,y_b,direction,name,rect_frames) # 调用父类初始化，只传递参数，所有属性由父类创建
 
     def trampled(self,level):
         self.x_vel = 0
@@ -205,4 +205,62 @@ class Koopa(Enemy):
 
 敌人需要访问当前关卡实例的具体数据，而不是关卡类本身
 
+
+"""
+# ============================================
+# Enemy 状态机转换图
+# ============================================
+
+"""
+                    [初始化]
+                       │
+                       ▼
+                 ┌─────────────┐
+                 │   walk      │◄──────────────────────┐
+                 │   (行走)     │                       │
+                 └─────────────┘                       │
+                       │                               │
+        ┌──────────────┼──────────────┐                │
+        │              │              │                │
+        ▼              ▼              ▼                │
+     [落地碰撞]     [悬空无碰撞]      [玩家踩踏]                  
+        │              │              │                │
+        ▼              ▼              ▼                │
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │
+│   walk      │ │    fall     │ │  trampled   │        │
+│  (保持)             (下落)            (被踩)                 
+└─────────────┘ └─────────────┘ └─────────────┘        │
+                       │              │                │
+                       │              │                │
+                       ▼              ▼                │
+                  [着地碰撞]    [计时器500ms]             │
+                       │              │                │
+                       ▼              ▼                │
+                 ┌─────────────┐ ┌─────────────┐       │
+                 │   walk      │ │   kill()    │       │
+                 │   (恢复)     │ │   (死亡)               
+                 └─────────────┘ └─────────────┘       
+                                                    [龟壳恢复]
+[玩家踢龟壳]                                         
+     │                                                 │
+     ▼                                                 │
+┌─────────────┐                                        │
+│   slide     │───────────────────────────── ──── ──── ┘
+│   (滑行)     │      [5秒后恢复walk]
+└─────────────┘
+     │
+     ▼
+[碰撞其他敌人]
+     │
+     ▼
+┌─────────────┐
+│   die       │
+│   (死亡)     
+└─────────────┘
+     │
+     ▼
+[超出屏幕]
+     │
+     ▼
+  kill()
 """

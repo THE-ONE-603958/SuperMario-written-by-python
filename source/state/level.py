@@ -44,10 +44,10 @@ class Level:
             self.map_start_x, self.map_end_x, self.player_x, self.player_y = self.positions[0]
 
     def setup_game_items(self):
-        self.game_items_group = pygame.sprite.Group()
+        self.ground_items_group = pygame.sprite.Group()
         for name in ['ground', 'pipe', 'step']:
             for item in self.map_datas[name]:
-                self.game_items_group.add(stuff.Item(item['x'], item['y'], item['width'], item['height'], name))
+                self.ground_items_group.add(stuff.Item(item['x'], item['y'], item['width'], item['height'], name))
 
     def setup_bricks(self):
         self.brick_group = pygame.sprite.Group()
@@ -140,16 +140,24 @@ class Level:
             self.player.y_vel = 7
             self.player.state ='fall'
 
+            if sprite.name == 'box':
+                if sprite.state == 'rest':
+                    sprite.go_bumped()
+
+            if sprite.name == 'brick':
+                if sprite.state == 'rest':
+                    sprite.go_bumped()
+
     def check_x_collision(self):
-        check_group = pygame.sprite.Group(self.game_items_group, self.brick_group)
+        check_group = pygame.sprite.Group(self.ground_items_group, self.brick_group)
         collision_occurs = pygame.sprite.spritecollideany(self.player, check_group)
         if collision_occurs:
             self.adjust_player_x(collision_occurs)
-
+        #玩家碰撞后死亡
         # enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
         # if enemy:
         #     self.player.go_die()
-
+        #
         shell = pygame.sprite.spritecollideany(self.player, self.shell_group)
         if shell:
             if shell.state == 'slide':
@@ -166,14 +174,25 @@ class Level:
                 shell.state = 'slide'
 
     def check_y_collision(self):
-        check_group = pygame.sprite.Group(self.game_items_group, self.brick_group,self.box_group)
-        collision_occurs = pygame.sprite.spritecollideany(self.player, check_group)
-        if collision_occurs:
-            self.adjust_player_y(collision_occurs)
-        self.check_will_fall_or_not(self.player)
-
+        ground_item = pygame.sprite.spritecollideany(self.player,self.ground_items_group)
+        brick = pygame.sprite.spritecollideany(self.player,self.brick_group)
+        box = pygame.sprite.spritecollideany(self.player,self.box_group)
         enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
-        if enemy:
+
+        # 选择距离玩家最近的碰撞目标
+        if brick and box:
+            # 选择距离更近的物体
+            if abs(self.player.rect.centerx - brick.rect.centerx) > abs(self.player.rect.centerx - box.rect.centerx):
+                brick = None
+            else:
+                box = None
+        if ground_item:
+            self.adjust_player_y(ground_item)
+        elif brick:
+            self.adjust_player_y(brick)
+        elif box:
+            self.adjust_player_y(box)
+        elif enemy:
             self.enemy_group.remove(enemy)
             if enemy.name == 'koopa':
                 self.shell_group.add(enemy)
@@ -189,9 +208,11 @@ class Level:
                 self.player.y_vel = self.player.jump_vel * 0.8
             enemy.go_die(how)
 
+        self.check_will_fall_or_not(self.player)
+
     def check_will_fall_or_not(self, sprite):
         sprite.rect.y += 1
-        check_group = pygame.sprite.Group(self.game_items_group, self.brick_group,self.box_group)
+        check_group = pygame.sprite.Group(self.ground_items_group, self.brick_group,self.box_group)
         collided_sprite = pygame.sprite.spritecollideany(sprite,  check_group)
         if not collided_sprite and sprite.state != 'jump':
             sprite.state = 'fall'
@@ -285,11 +306,11 @@ pass
 → 玩家应该被顶下来
 ###########################################################################################################  
 
-enemy_group.update(self) 中的 self 是当前 Level 实例，传给每个敌人，让敌人能够访问 Level 的属性和方法（例如 level.game_items_group）
+enemy_group.update(self) 中的 self 是当前 Level 实例，传给每个敌人，让敌人能够访问 Level 的属性和方法（例如 level.ground_items_group）
 
 Level.update(self, surface, keys)
     │
-    ├─ self 是 Level 实例 (包含 game_items_group, brick_group, box_group 等)
+    ├─ self 是 Level 实例 (包含 ground_items_group, brick_group, box_group 等)
     │
     └─ for enemy_group in self.enemy_group_dict.values():
             enemy_group.update(self)  # 传递 Level 实例
@@ -307,7 +328,7 @@ Level.update(self, surface, keys)
                                         │
                                         └─ self.check_x_collsion(level)
                                             │
-                                            └─ 使用 level.game_items_group
+                                            └─ 使用 level.ground_items_group
                                             
 ###########################################################################################################                                               
 json示例：
