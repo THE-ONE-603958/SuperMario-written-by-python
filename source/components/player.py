@@ -15,6 +15,7 @@ class Player(pygame.sprite.Sprite):
         self.load_images()
         self.turn_frame_start_time = 0  # 转身帧开始时间
         self.turn_frame_duration = 100  # 转身帧显示时长（毫秒）
+        self.blank_image = pygame.Surface((1, 1))
 
     def load_data(self):
         file_name = self.name + '.json'
@@ -28,6 +29,7 @@ class Player(pygame.sprite.Sprite):
         self.dead = False
         self.big = False
         self.can_jump = True
+        self.hurt_immune = False
 
     def setup_velocities(self):
         speed = self.player_data['speed']
@@ -51,6 +53,7 @@ class Player(pygame.sprite.Sprite):
         self.walking_timer = 0
         self.transition_timer = 0
         self.death_timer = 0
+        self.hurt_immune_timer = 0
 
     def load_images(self):
         sheet = setup.GRAPHICS['mario_bros']
@@ -191,7 +194,7 @@ class Player(pygame.sprite.Sprite):
 
     def small2big(self,keys):
         frame_dur = 65
-        sizes = [1,0,1,0,1,2,0,1,2,0,2] # 0 small 1 medium 2 big
+        sizes = [1,0,1,0,1,2,0,1,2,0,2] # 0: small 1: medium 2: big
         frames_and_idx = [(self.small_normal_frames,0),(self.small_normal_frames,7),(self.big_normal_frames,0)]#将形态数值（0,1,2）映射到实际的图片帧和起始索引。
         if self.transition_timer == 0:
             self.big = True
@@ -207,6 +210,26 @@ class Player(pygame.sprite.Sprite):
                 self.state = 'walk'
                 self.right_frames = self.right_big_normal_frames
                 self.left_frames = self.left_big_normal_frames
+
+    def big2small(self,keys):
+        frame_dur = 65
+        sizes = [2,1,0,1,0,1,0,1,0,1,0] # 0: small 1: medium 2: big
+        frames_and_idx = [(self.small_normal_frames,8),(self.big_normal_frames,8),(self.big_normal_frames,4)]#将形态数值（0,1,2）映射到实际的图片帧和起始索引。
+        if self.transition_timer == 0:
+            self.big = False
+            self.transition_timer = self.current_time
+            self.changing_idx = 0 #当前播放到 sizes 数组的第几个元素
+        elif self.current_time - self.transition_timer > frame_dur:
+            self.transition_timer = self.current_time
+            frames, idx = frames_and_idx[sizes[self.changing_idx]]
+            self.change_player_image(frames, idx)
+            self.changing_idx += 1
+            if self.changing_idx == len(sizes):
+                self.transition_timer = 0
+                self.state = 'walk'
+                self.right_frames = self.right_small_normal_frames
+                self.left_frames = self.left_small_normal_frames
+
     #变装
     def change_player_image(self,frames,idx):
         self.frame_index = idx
@@ -231,6 +254,29 @@ class Player(pygame.sprite.Sprite):
         else:
             return max(vel-accel, -max_vel)
 
+    def is_hurt_immune(self):
+        if self.hurt_immune:
+            if self.hurt_immune_timer == 0:
+                self.hurt_immune_timer = self.current_time
+            elif self.current_time - self.hurt_immune_timer < 2000:
+                # ✅ 保存原始图像，不要直接覆盖
+                if (self.current_time - self.hurt_immune_timer) % 100 < 50:
+                    self.image = self.blank_image
+                else:
+                    # 恢复原始图像
+                    if self.face_right:
+                        self.image = self.right_frames[self.frame_index]
+                    else:
+                        self.image = self.left_frames[self.frame_index]
+            else:
+                self.hurt_immune = False
+                self.hurt_immune_timer = 0
+                # 确保恢复原始图像
+                if self.face_right:
+                    self.image = self.right_frames[self.frame_index]
+                else:
+                    self.image = self.left_frames[self.frame_index]
+
     def handle_states(self, keys):
         self.can_jump_or_not(keys)
 
@@ -247,6 +293,8 @@ class Player(pygame.sprite.Sprite):
             self.die(keys)
         elif self.state == 'small2big':
             self.small2big(keys)
+        elif self.state == 'big2small':
+            self.big2small(keys)
 
         # 图像设置
         if self.face_right:
@@ -298,7 +346,11 @@ class Player(pygame.sprite.Sprite):
         return duration
 
     def update(self,keys):
+        self.current_time = pygame.time.get_ticks()
         self.handle_states(keys)
+        self.update_animation()
+        self.is_hurt_immune()
+
 
 
 """

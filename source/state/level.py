@@ -104,8 +104,8 @@ class Level:
 
     def setup_enemies(self):
         for enemy_group_data in self.map_datas['enemy']:
-            group = pygame.sprite.Group()
             for enemy_group_id, enemy_data_list in enemy_group_data.items(): #这里的enemy_group_id是字符串
+                group = pygame.sprite.Group()
                 for enemy_data in enemy_data_list:
                     group.add(enemy.create_enemy(enemy_data))
                     self.enemy_group_dict[enemy_group_id] = group
@@ -139,19 +139,29 @@ class Level:
         self.player.x_vel = 0
 
     def adjust_player_y(self, sprite):
+        # ✅ 如果处于过渡动画，不改变状态
+        if self.is_frozen():
+            if self.player.rect.bottom < sprite.rect.bottom:
+                self.player.rect.bottom = sprite.rect.top
+                self.player.y_vel = 0
+            else:
+                self.player.rect.top = sprite.rect.bottom
+                self.player.y_vel = 7
+            return
+
         if self.player.rect.bottom < sprite.rect.bottom:
             self.player.rect.bottom = sprite.rect.top
             self.player.y_vel = 0
-            self.player.state ='walk'
+            self.player.state = 'walk'
         else:
             self.player.rect.top = sprite.rect.bottom
             self.player.y_vel = 7
-            self.player.state ='fall'
+            self.player.state = 'fall'
 
+            # 只有非冻结状态才触发箱子/砖块
             if sprite.name == 'box':
                 if sprite.state == 'rest':
                     sprite.go_bumped()
-
             if sprite.name == 'brick':
                 if sprite.state == 'rest':
                     sprite.go_bumped()
@@ -161,10 +171,19 @@ class Level:
         collision_occurs = pygame.sprite.spritecollideany(self.player, check_group)
         if collision_occurs:
             self.adjust_player_x(collision_occurs)
-        #玩家碰撞后死亡
-        # enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
-        # if enemy:
-        #     self.player.go_die()
+        #玩家碰撞后的状态变化
+        if self.player.hurt_immune:
+            return
+        enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
+        if enemy:
+            if self.player.big:
+                self.player.state = 'big2small'
+                # ✅ 如果已经在无敌状态，不重复设置
+                if not self.player.hurt_immune:
+                    self.player.hurt_immune = True
+                    self.player.hurt_immune_timer = 0  # 重置计时器，让is_hurt_immune重新开始
+            else:
+                self.player.go_die()
 
         shell = pygame.sprite.spritecollideany(self.player, self.shell_group)
         if shell:
@@ -193,7 +212,7 @@ class Level:
         box = pygame.sprite.spritecollideany(self.player,self.box_group)
         enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
 
-        # 选择距离玩家最近的碰撞目标，方便每次碰撞都成功
+        # 选择距离玩家最近的碰撞目标
         if brick and box:
             if abs(self.player.rect.centerx - brick.rect.centerx) > abs(self.player.rect.centerx - box.rect.centerx):
                 brick = None
@@ -206,6 +225,8 @@ class Level:
         elif box:
             self.adjust_player_y(box)
         elif enemy:
+            if self.player.hurt_immune:
+                return
             self.enemy_group.remove(enemy)
             if enemy.name == 'koopa':
                 self.shell_group.add(enemy)
@@ -224,10 +245,14 @@ class Level:
         self.check_will_fall_or_not(self.player)
 
     def check_will_fall_or_not(self, sprite):
+        # ✅ 冻结状态下直接返回，不进行下落检测
+        if self.is_frozen():
+            return
+
         sprite.rect.y += 1
-        check_group = pygame.sprite.Group(self.ground_items_group, self.brick_group,self.box_group)
-        collided_sprite = pygame.sprite.spritecollideany(sprite,  check_group)
-        if not collided_sprite and sprite.state != 'jump' and not self.is_frozen():#后面代码防止mario状态从small2big变成fall
+        check_group = pygame.sprite.Group(self.ground_items_group, self.brick_group, self.box_group)
+        collided_sprite = pygame.sprite.spritecollideany(sprite, check_group)
+        if not collided_sprite and sprite.state != 'jump':
             sprite.state = 'fall'
         sprite.rect.y -= 1
 
@@ -235,7 +260,7 @@ class Level:
         if self.player.rect.y > C.SCREEN_H:
             self.player.go_die()
 
-    def is_frozen(self):
+    def is_frozen(self):#mario变身期间，场景冻结
         return self.player.state in ['small2big', 'big2small','big2fire','fire2small']
 
     def update_game_window(self):#相机系统
