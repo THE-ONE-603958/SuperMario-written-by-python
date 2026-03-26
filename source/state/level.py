@@ -165,7 +165,7 @@ class Level:
         # enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
         # if enemy:
         #     self.player.go_die()
-        #
+
         shell = pygame.sprite.spritecollideany(self.player, self.shell_group)
         if shell:
             if shell.state == 'slide':
@@ -193,9 +193,8 @@ class Level:
         box = pygame.sprite.spritecollideany(self.player,self.box_group)
         enemy = pygame.sprite.spritecollideany(self.player, self.enemy_group)
 
-        # 选择距离玩家最近的碰撞目标
+        # 选择距离玩家最近的碰撞目标，方便每次碰撞都成功
         if brick and box:
-            # 选择距离更近的物体
             if abs(self.player.rect.centerx - brick.rect.centerx) > abs(self.player.rect.centerx - box.rect.centerx):
                 brick = None
             else:
@@ -228,13 +227,16 @@ class Level:
         sprite.rect.y += 1
         check_group = pygame.sprite.Group(self.ground_items_group, self.brick_group,self.box_group)
         collided_sprite = pygame.sprite.spritecollideany(sprite,  check_group)
-        if not collided_sprite and sprite.state != 'jump':
+        if not collided_sprite and sprite.state != 'jump' and not self.is_frozen():#后面代码防止mario状态从small2big变成fall
             sprite.state = 'fall'
         sprite.rect.y -= 1
 
     def check_if_go_die(self):
         if self.player.rect.y > C.SCREEN_H:
             self.player.go_die()
+
+    def is_frozen(self):
+        return self.player.state in ['small2big', 'big2small','big2fire','fire2small']
 
     def update_game_window(self):#相机系统
         third = self.game_window.x + self.game_window.width / 3
@@ -258,6 +260,8 @@ class Level:
             if self.current_time - self.player.death_timer > 3000:
                 self.finished = True
                 self.update_game_info()
+        elif self.is_frozen():
+            pass
         else:
             self.info.update()
             self.Check_checkpoints()
@@ -438,4 +442,22 @@ def Check_checkpoints(self):
 
         for enemy in self.enemy_group:
             print(f"活跃敌人: {enemy.name} at ({enemy.rect.x}, {enemy.rect.y})")
+"""
+
+"""
+主要为三个阶段
+
+初始化阶段 (Level.setup_bricks_and_boxes)
+    静态组: box_group 和 brick_group 是静态容器，所有箱子/砖块一旦创建就会一直存在，只改变内部状态(rest/bumped/open)，不会从组中移除。
+
+碰撞与激活阶段 (Level.check_y_collision & Box.bumped)
+    动态组: powerup_group 和 coin_group 是动态容器，内容会动态变化：
+
+道具更新与交互阶段 (Powerup.update & Level.check_x_collision)
+    增加: 马里奥顶开特定箱子/砖块时，通过传入的group参数添加道具/金币
+    减少: 马里奥收集道具/金币时，通过kill()方法移除
+    
+特点：
+    依赖注入: 通过构造函数将powerup_group和coin_group传入箱子/砖块对象，实现了对象间的松耦合，让箱子/砖块知道该往哪个组添加道具。
+    状态机模式: 箱子、砖块、道具都使用状态机管理自己的行为(rest/bumped/open/grow/walk)，保证逻辑清晰。
 """
