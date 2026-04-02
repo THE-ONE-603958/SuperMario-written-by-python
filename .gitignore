@@ -1,0 +1,34 @@
+**/target/
+
+# IntelliJ project files
+.idea
+*.iml
+**/out
+html
+
+# Eclipse project files
+**/.classpath
+**/.project
+**/.settings/
+**/bin/
+**/data/
+
+# gradle
+.gradle
+**/build
+
+# Virtual environments
+.venv
+.idea/
+uv.lock
+
+# MacOS
+.DS_Store
+**/logs
+*.log
+**/*.log
+hw_cookies.txt
+profiles/*
+__pycache__
+
+config.ini
