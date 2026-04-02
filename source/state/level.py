@@ -164,7 +164,10 @@ class Level:
                     sprite.go_bumped()
             if sprite.name == 'brick':
                 if sprite.state == 'rest':
-                    sprite.go_bumped()
+                    if self.player.big and sprite.brick_type == 0:
+                        sprite.smashed_brick(self.dying_group)
+                    else:
+                        sprite.go_bumped()
 
     def check_x_collision(self):
         check_group = pygame.sprite.Group(self.ground_items_group, self.brick_group)

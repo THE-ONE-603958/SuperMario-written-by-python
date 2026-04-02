@@ -20,7 +20,7 @@ html
 # Virtual environments
 .venv
 .idea/
-uv.lock
+.uv/
 
 # MacOS
 .DS_Store

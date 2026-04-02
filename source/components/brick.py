@@ -68,6 +68,34 @@ class Brick(pygame.sprite.Sprite):
         self.frame_index = 1
         self.image = self.frames[self.frame_index]
 
+    def smashed_brick(self,group):
+        debris =[
+            (self.rect.x, self.rect.y,-2,-10),
+            (self.rect.x, self.rect.y, 2,-10),
+            (self.rect.x, self.rect.y,-2,-5),
+            (self.rect.x, self.rect.y, 2,-5),
+        ]
+        for d in debris:
+            group.add(Debris(*d))
+            self.kill()
     def update(self):
         self.current_time = pygame.time.get_ticks()
         self.handle_states()
+
+class Debris(pygame.sprite.Sprite):
+    def __init__(self,x,y,x_vel,y_vel):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = tools.get_image(setup.GRAPHICS['tile_set'],68,20,8,8,(0,0,0),C.BRICK_MULTI)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.x_vel = x_vel
+        self.y_vel = y_vel
+        self.gravity = C.GRAVITY
+
+    def update(self,*args):
+        self.rect.x += self.x_vel
+        self.rect.y += self.y_vel
+        self.y_vel += self.gravity
+        if self.rect.y > C.SCREEN_H:
+            self.kill()
