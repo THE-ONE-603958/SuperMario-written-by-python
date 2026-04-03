@@ -62,7 +62,7 @@ class Brick(pygame.sprite.Sprite):
             elif self.brick_type == 1:
                 self.state = 'open'
             else:
-                self.group.add(create_powerup(self,rect.centerx,rect.centery,self.brick_type))
+                self.group.add(create_powerup(self.rect.centerx,self.rect.centery,self.brick_type))
             # 向powerup_group 添加蘑菇，执行后: powerup_group = [Mushroom1, Mushroom2]
     def open(self):
         self.frame_index = 1

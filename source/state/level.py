@@ -158,6 +158,8 @@ class Level:
             self.player.y_vel = 7
             self.player.state = 'fall'
 
+            self.is_enemy_on(sprite)
+
             # 只有非冻结状态才触发箱子/砖块
             if sprite.name == 'box':
                 if sprite.state == 'rest':
@@ -243,7 +245,7 @@ class Level:
                 self.player.state = 'jump'
                 self.player.rect.bottom = enemy.rect.top
                 self.player.y_vel = self.player.jump_vel * 0.8
-            enemy.go_die(how)
+            enemy.go_die(how,1 if self.player.face_right else -1)
 
         self.check_will_fall_or_not(self.player)
 
@@ -262,6 +264,18 @@ class Level:
     def check_if_go_die(self):
         if self.player.rect.y > C.SCREEN_H:
             self.player.go_die()
+
+    def is_enemy_on(self, sprite):
+        sprite.rect.y -= 1
+        enemy = pygame.sprite.spritecollideany(sprite,self.enemy_group)
+        if enemy:
+            self.enemy_group.remove(enemy)
+            self.dying_group.add(enemy)
+            if sprite.rect.centerx > enemy.rect.centerx:
+                enemy.go_die('bumped',-1)
+            else:
+                enemy.go_die('bumped',1)
+        sprite.rect.y += 1
 
     def is_frozen(self):#mario变身期间，场景冻结
         return self.player.state in ['small2big', 'big2small','big2fire','fire2small']
