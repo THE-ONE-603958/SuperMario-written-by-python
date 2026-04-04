@@ -28,6 +28,7 @@ class Player(pygame.sprite.Sprite):
         self.face_right = True
         self.dead = False
         self.big = False
+        self.fire = False
         self.can_jump = True
         self.hurt_immune = False
 
@@ -230,6 +231,25 @@ class Player(pygame.sprite.Sprite):
                 self.right_frames = self.right_small_normal_frames
                 self.left_frames = self.left_small_normal_frames
 
+    def big2fire(self,keys):
+        frame_dur = 65
+        sizes = [0,1,0,1,0,1,0,1,0,1,0]  # 0: small 1: medium 2: big
+        frames_and_idx = [(self.big_fire_frames, 3), (self.big_normal_frames, 3)]
+        if self.transition_timer == 0:
+            self.fire = True
+            self.transition_timer = self.current_time
+            self.changing_idx = 0  # 当前播放到 sizes 数组的第几个元素
+        elif self.current_time - self.transition_timer > frame_dur:
+            self.transition_timer = self.current_time
+            frames, idx = frames_and_idx[sizes[self.changing_idx]]
+            self.change_player_image(frames, idx)
+            self.changing_idx += 1
+            if self.changing_idx == len(sizes):
+                self.transition_timer = 0
+                self.state = 'walk'
+                self.right_frames = self.right_big_fire_frames
+                self.left_frames = self.left_big_fire_frames
+
     #变装
     def change_player_image(self,frames,idx):
         self.frame_index = idx
@@ -295,6 +315,8 @@ class Player(pygame.sprite.Sprite):
             self.small2big(keys)
         elif self.state == 'big2small':
             self.big2small(keys)
+        elif self.state == 'big2fire':
+            self.big2fire(keys)
 
         # 图像设置
         if self.face_right:

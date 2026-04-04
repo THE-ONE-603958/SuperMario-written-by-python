@@ -208,8 +208,8 @@ class Level:
         powerup = pygame.sprite.spritecollideany(self.player, self.powerup_group)
         if powerup:
             powerup.kill()
-            if powerup.name == 'mushroom':
-                self.player.state = 'small2big'
+            if powerup.name == 'fireflower':
+                self.player.state = 'big2fire'
 
     def check_y_collision(self):
         ground_item = pygame.sprite.spritecollideany(self.player,self.ground_items_group)
