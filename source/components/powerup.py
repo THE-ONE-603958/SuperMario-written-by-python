@@ -126,7 +126,16 @@ class Fireball(Powerup):
                 self.frame_index += 1
                 self.frame_index %= 4
                 self.timer = self.current_time
+                self.image = self.frames[self.frame_index]
             self.update_positon(level)
+        elif self.state == 'boom':
+            if self.current_time - self.timer > 50:
+                if self.frame_index < 6:
+                    self.frame_index += 1
+                    self.timer = self.current_time
+                    self.image = self.frames[self.frame_index]
+                else:
+                    self.kill()
 
     def update_positon(self,level):
         self.rect.x += self.x_vel
@@ -140,14 +149,8 @@ class Fireball(Powerup):
     def check_x_collision(self,level):
         sprite= pygame.sprite.spritecollideany(self,level.ground_items_group)
         if sprite:
-            # self.direction = 1 if self.direction == 0 else 0 #该代码中敌人可能会"嵌入"到障碍物中，由此触发check_y_collision
-            if self.direction: #向右
-                self.direction = 0
-                self.rect.right = sprite.rect.left
-            else:
-                self.direction = 1
-                self.rect.left = sprite.rect.right
-            self.x_vel *= -1
+            self.frame_index = 4
+            self.state = 'boom'
 
     def check_y_collision(self,level):
         check_group = pygame.sprite.Group(level.ground_items_group,level.box_group,level.brick_group)
