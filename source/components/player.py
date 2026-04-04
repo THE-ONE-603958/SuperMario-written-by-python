@@ -1,5 +1,6 @@
 import pygame
 from source import setup,tools
+from source.components import powerup
 from source import constants as C
 import json
 import os
@@ -102,7 +103,7 @@ class Player(pygame.sprite.Sprite):
             self.image = self.frames[self.frame_index]
             self.rect = self.image.get_rect()
 
-    def stand(self,keys):
+    def stand(self,keys,level):
         self.frame_index = 0
         self.x_vel = 0
         self.y_vel = 0
@@ -116,6 +117,9 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_SPACE] and self.can_jump:
             self.state = 'jump'
             self.y_vel = self.jump_vel
+
+        if keys[pygame.K_a]:
+            self.shoot_fireball(level)
 
     def walk(self,keys):
 
@@ -250,6 +254,11 @@ class Player(pygame.sprite.Sprite):
                 self.right_frames = self.right_big_fire_frames
                 self.left_frames = self.left_big_fire_frames
 
+    def shoot_fireball(self,level):
+        self.frame_index = 6
+        fireball = powerup.Fireball(self.rect.centerx,self.rect.centery,self.face_right)
+        level.powerup_group.add(fireball)
+
     #变装
     def change_player_image(self,frames,idx):
         self.frame_index = idx
@@ -297,12 +306,12 @@ class Player(pygame.sprite.Sprite):
                 else:
                     self.image = self.left_frames[self.frame_index]
 
-    def handle_states(self, keys):
+    def handle_states(self, keys,level):
         self.can_jump_or_not(keys)
 
         # 状态处理
         if self.state == 'stand':
-            self.stand(keys)
+            self.stand(keys,level)
         elif self.state == 'walk':
             self.walk(keys)
         elif self.state == 'jump':
@@ -367,9 +376,9 @@ class Player(pygame.sprite.Sprite):
         duration = -60/self.max_run_vel * abs(self.x_vel) + 80
         return duration
 
-    def update(self,keys):
+    def update(self,keys,level):
         self.current_time = pygame.time.get_ticks()
-        self.handle_states(keys)
+        self.handle_states(keys,level)
         self.update_animation()
         self.is_hurt_immune()
 
